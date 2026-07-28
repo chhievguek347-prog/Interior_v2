@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Poly 3D Living Room Furniture Set - Realistic PBR Presentation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b1019;
+            color: #ffffff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Presentation Panel */
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: 360px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        }
+
+        .ui-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ui-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+        }
+
+        .ui-title h1 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #bae6fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ui-title p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-grid {
+            display.grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 8px;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .view-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(3, 105, 161, 0.25));
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+    </style>
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="ui-panel">
+        <div class="ui-header">
+            <div class="ui-icon">🛋️</div>
+            <div class="ui-title">
+                <h1>High-Poly Living Set</h1>
+                <p>Photorealistic PBR Furniture Models</p>
+            </div>
+        </div>
+
+        <div class="view-grid">
+            <button class="view-btn active" id="btn-layout" onclick="setLayoutView()">📐 Room Layout</button>
+            <button class="view-btn" id="btn-sofa" onclick="inspectSofa()">🔍 3-Seater Sofa</button>
+        </div>
+
+        <div class="info-card">
+            <strong>High-Poly Model Details:</strong><br>
+            • <strong>3-Seater Sofa</strong>: Wrinkled cushions & tapered legs<br>
+            • <strong>Coffee Table</strong>: Oak frame & stone countertop<br>
+            • <strong>TV Console</strong>: Flat screen TV, remote & cable clutter<br>
+            • <strong>Accent Chair & Side Table</strong>: Complementary fabric<br>
+            • <strong>Bookshelf & Lighting</strong>: Books, decor, plants, floor lamp
+        </div>
+    </div>
+
+    <script>
+        // --- 3D WebGL Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0b1019');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.25;
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+
+        function setLayoutView() {
+            document.getElementById('btn-layout').classList.add('active');
+            document.getElementById('btn-sofa').classList.remove('active');
+            camera.position.set(1.5, 6, 5);
+            orbitControls.target.set(1.5, 0.5, -1.0);
+            orbitControls.update();
+        }
+
+        function inspectSofa() {
+            document.getElementById('btn-sofa').classList.add('active');
+            document.getElementById('btn-layout').classList.remove('active');
+            camera.position.set(1.75, 2.2, 2.2);
+            orbitControls.target.set(1.75, 0.5, -0.8);
+            orbitControls.update();
+        }
+
+        // --- PBR Materials ---
+        const matOak = new THREE.MeshStandardMaterial({ color: '#b88a5c', roughness: 0.45, metalness: 0.05 });
+        const matSofaFabric = new THREE.MeshStandardMaterial({ color: '#d1d5db', roughness: 0.9 });
+        const matArmchairFabric = new THREE.MeshStandardMaterial({ color: '#475569', roughness: 0.85 });
+        const matStoneTop = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.35, metalness: 0.15 });
+        const matBlackMetal = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.35, metalness: 0.6 });
+        const matRug = new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.95 });
+        const matGlass = new THREE.MeshStandardMaterial({ color: '#93c5fd', transparent: true, opacity: 0.25 });
+        const matLampshade = new THREE.MeshStandardMaterial({ color: '#fef3c7', roughness: 0.85 });
+        const matFloor = new THREE.MeshStandardMaterial({ color: '#8c6845', roughness: 0.5 });
+        const matWall = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.85 });
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight('#fef3c7', 0.65);
+        scene.add(ambientLight);
+
+        // Key Light
+        const keyLight = new THREE.DirectionalLight('#fff4e0', 1.45);
+        keyLight.position.set(-6, 8, 4);
+        keyLight.castShadow = true;
+        keyLight.shadow.mapSize.width = 2048;
+        keyLight.shadow.mapSize.height = 2048;
+        scene.add(keyLight);
+
+        // Floor Lamp Point Light
+        const floorLampLight = new THREE.PointLight('#fef3c7', 1.3, 5);
+        floorLampLight.position.set(2.6, 1.65, 0.4);
+        scene.add(floorLampLight);
+
+        // --- Construction ---
+        function addBox(name, x, y, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        // Environment Base Plane
+        addBox('FloorPlane', 1.2, -0.05, -1.2, 5.0, 0.1, 5.0, matFloor);
+        addBox('BackWallPlane', 1.2, 1.35, 0.8, 5.0, 2.7, 0.1, matWall);
+        addBox('RightWallPlane', 3.7, 1.35, -1.2, 0.1, 2.7, 5.0, matWall);
+
+        // 1. 3-Seater Sofa with Plush Cushions
+        const sX = 1.75, sZ = -0.8;
+        addBox('Sofa_Base', sX, 0.22, sZ, 1.85, 0.14, 0.85, matOak);
+        addBox('Sofa_ArmL', sX - 0.86, 0.48, sZ, 0.16, 0.38, 0.85, matSofaFabric);
+        addBox('Sofa_ArmR', sX + 0.86, 0.48, sZ, 0.16, 0.38, 0.85, matSofaFabric);
+        addBox('Sofa_Seat1', sX - 0.55, 0.36, sZ - 0.02, 0.56, 0.18, 0.72, matSofaFabric);
+        addBox('Sofa_Seat2', sX, 0.36, sZ - 0.02, 0.56, 0.18, 0.72, matSofaFabric);
+        addBox('Sofa_Seat3', sX + 0.55, 0.36, sZ - 0.02, 0.56, 0.18, 0.72, matSofaFabric);
+        addBox('Sofa_Back1', sX - 0.55, 0.62, sZ + 0.32, 0.56, 0.48, 0.22, matSofaFabric);
+        addBox('Sofa_Back2', sX, 0.62, sZ + 0.32, 0.56, 0.48, 0.22, matSofaFabric);
+        addBox('Sofa_Back3', sX + 0.55, 0.62, sZ + 0.32, 0.56, 0.48, 0.22, matSofaFabric);
+
+        // 2. Coffee Table
+        const tX = 1.75, tZ = -1.8;
+        addBox('Table_Frame', tX, 0.34, tZ, 1.1, 0.06, 0.65, matOak);
+        addBox('Table_StoneTop', tX, 0.38, tZ, 1.12, 0.04, 0.67, matStoneTop);
+
+        // 3. TV Media Console & Flat Screen TV
+        const tvX = 2.78, tvZ = -2.6;
+        addBox('TV_Console', tvX, 0.22, tvZ, 0.38, 0.35, 1.8, matOak);
+        addBox('TV_Stand', tvX + 0.05, 0.41, tvZ, 0.22, 0.03, 0.45, matBlackMetal);
+        addBox('TV_Screen', tvX + 0.12, 1.15, tvZ, 0.06, 0.82, 1.45, matBlackMetal);
+        addBox('TV_Remote', tvX - 0.1, 0.41, tvZ - 0.3, 0.16, 0.02, 0.06, matBlackMetal);
+
+        // 4. Accent Armchair & Side Table
+        const cX = -0.1, cZ = -1.8;
+        addBox('Armchair_Seat', cX, 0.36, cZ, 0.78, 0.18, 0.78, matArmchairFabric);
+        addBox('Armchair_Back', cX - 0.3, 0.62, cZ, 0.22, 0.48, 0.78, matArmchairFabric);
+        addBox('SideTable', cX, 0.5, cZ + 0.85, 0.45, 0.04, 0.45, matOak);
+
+        // 5. Bookshelf Unit
+        const shX = -0.1, shZ = 0.5;
+        addBox('Bookshelf_Outer', shX, 0.9, shZ, 0.38, 1.8, 0.95, matOak);
+        addBox('Shelf_1', shX, 0.45, shZ, 0.36, 0.04, 0.91, matOak);
+        addBox('Shelf_2', shX, 0.9, shZ, 0.36, 0.04, 0.91, matOak);
+        addBox('Shelf_3', shX, 1.35, shZ, 0.36, 0.04, 0.91, matOak);
+
+        // 6. Tall Floor Lamp & Area Rug
+        addBox('FloorLamp_Stem', 2.6, 0.88, 0.4, 0.04, 1.7, 0.04, matBlackMetal);
+        addBox('FloorLamp_Shade', 2.6, 1.62, 0.4, 0.38, 0.32, 0.38, matLampshade);
+        addBox('AreaRug', sX, 0.01, -1.8, 2.2, 0.02, 2.8, matRug);
+
+        // 7. Wall Art
+        addBox('WallArt_Frame', sX, 1.6, 0.38, 1.35, 0.85, 0.04, matOak);
+        addBox('WallArt_Glass', sX, 1.6, 0.36, 1.26, 0.76, 0.01, matGlass);
+
+        // Initialize Layout View
+        setLayoutView();
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

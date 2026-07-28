@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photorealistic Empty Studio Apartment Architectural Shell</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e17;
+            color: #ffffff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Panel */
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: 360px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        }
+
+        .ui-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ui-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+        }
+
+        .ui-title h1 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #bae6fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ui-title p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 8px;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .view-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(3, 105, 161, 0.25));
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .prompt-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 20px;
+            padding: 24px 36px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+            display: none;
+        }
+
+        .prompt-overlay h2 { font-size: 20px; margin-bottom: 8px; color: #fff; }
+        .prompt-overlay p { font-size: 13px; color: #94a3b8; }
+    </style>
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="prompt-overlay" id="prompt-overlay" onclick="lockPointer()">
+        <h2>🚶 Click to Walk Through Architectural Shell</h2>
+        <p>Use WASD to Move • Mouse to Look • ESC to Unlock</p>
+    </div>
+
+    <div class="ui-panel">
+        <div class="ui-header">
+            <div class="ui-icon">🏛️</div>
+            <div class="ui-title">
+                <h1>Bare Architectural Shell</h1>
+                <p>Empty Studio Apartment (No Furniture)</p>
+            </div>
+        </div>
+
+        <div class="view-grid">
+            <button class="view-btn active" id="btn-topdown" onclick="setTopDownView()">📐 Top-Down Shell</button>
+            <button class="view-btn" id="btn-walk" onclick="setWalkthroughView()">🚶 Shell Walkthrough</button>
+        </div>
+
+        <div class="info-card">
+            <strong>Architectural Specifications:</strong><br>
+            • <strong>Footprint</strong>: 8m × 5m × 2.7m (15cm drywall walls)<br>
+            • <strong>Baseboards & Trim</strong>: White wood along all wall bases<br>
+            • <strong>Zone A</strong>: Open Living & Kitchen (Wood/Tile floor)<br>
+            • <strong>Dividing Wall</strong>: Solid wall with 1.0m connecting doorway<br>
+            • <strong>Zone B</strong>: Bedroom & Ensuite Bathroom (Doorway & wall)<br>
+            • <strong>Doors & Windows</strong>: Frames, handles, hinges, glass panes
+        </div>
+    </div>
+
+    <script>
+        // --- 3D WebGL Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0a0e17');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+
+        // View Mode state
+        let isWalkthrough = false;
+        let yaw = 0, pitch = 0;
+        let moveFwd = false, moveBwd = false, moveLeft = false, moveRight = false;
+
+        function setTopDownView() {
+            isWalkthrough = false;
+            if (document.pointerLockElement) document.exitPointerLock();
+
+            document.getElementById('btn-topdown').classList.add('active');
+            document.getElementById('btn-walk').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'none';
+
+            orbitControls.enabled = true;
+            camera.position.set(0, 13, 0.1);
+            orbitControls.target.set(0, 0, 0);
+            orbitControls.update();
+        }
+
+        function setWalkthroughView() {
+            isWalkthrough = true;
+            document.getElementById('btn-walk').classList.add('active');
+            document.getElementById('btn-topdown').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'block';
+
+            orbitControls.enabled = false;
+            // Spawn inside front entrance door (Zone A)
+            camera.position.set(-2.2, 1.65, -2.0);
+            yaw = 0; pitch = 0;
+            camera.rotation.set(0, 0, 0);
+        }
+
+        // --- PBR Materials ---
+        const matDrywall = new THREE.MeshStandardMaterial({ color: '#eae6df', roughness: 0.85 });
+        const matWoodPlank = new THREE.MeshStandardMaterial({ color: '#b88a5c', roughness: 0.45, metalness: 0.05 });
+        const matTileGrout = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.4 });
+        const matBaseboard = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.3 });
+        const matDoorWood = new THREE.MeshStandardMaterial({ color: '#9a693b', roughness: 0.45, metalness: 0.05 });
+        const matMetalHandle = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.35, metalness: 0.7 });
+        const matGlass = new THREE.MeshStandardMaterial({ color: '#93c5fd', transparent: true, opacity: 0.25 });
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight('#fef3c7', 0.65);
+        scene.add(ambientLight);
+
+        // Window sunlighting
+        const sunLight = new THREE.DirectionalLight('#fff4e0', 1.4);
+        sunLight.position.set(-6, 8, 4);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // --- 8m x 5m x 2.7m Bare Shell Construction ---
+        const roomW = 8.0, roomL = 5.0, roomH = 2.7, wallT = 0.15;
+        const halfW = roomW / 2, halfL = roomL / 2;
+
+        function addBox(name, x, y, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function addDoorAssembly(name, x, z, w, h, doorMat, metalMat) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            // Frame
+            const f1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, 0.12), doorMat);
+            f1.position.set(-w / 2 + 0.04, h / 2, 0);
+            group.add(f1);
+
+            const f2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, 0.12), doorMat);
+            f2.position.set(w / 2 - 0.04, h / 2, 0);
+            group.add(f2);
+
+            const f3 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, 0.12), doorMat);
+            f3.position.set(0, h - 0.04, 0);
+            group.add(f3);
+
+            // Panel
+            const p = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, h - 0.08, 0.04), doorMat);
+            p.position.set(0, h / 2, 0);
+            group.add(p);
+
+            // Handle
+            const handle1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.05), metalMat);
+            handle1.position.set(w * 0.35, h / 2, 0.04);
+            group.add(handle1);
+
+            scene.add(group);
+        }
+
+        // 1. Continuous Flooring Planes
+        addBox('Floor_WoodPlanks', -0.9, -0.05, 0, 6.2, 0.1, roomL, matWoodPlank);
+        addBox('Floor_KitchenTile', -3.0, 0.01, 1.4, 1.98, 0.02, 2.18, matTileGrout);
+        addBox('Floor_BathroomTile', 3.1, 0.01, 1.35, 1.78, 0.02, 2.28, matTileGrout);
+        addBox('Ceiling', 0, roomH + 0.05, 0, roomW, 0.1, roomL, matDrywall);
+
+        // 2. Exterior 15cm Drywall Walls & Windows
+        const winW = 2.0, sideL = (roomL - winW) / 2;
+        // West Wall with Living Window
+        addBox('West_S', -halfW - wallT / 2, roomH / 2, -halfL + sideL / 2, wallT, roomH, sideL, matDrywall);
+        addBox('West_N', -halfW - wallT / 2, roomH / 2, halfL - sideL / 2, wallT, roomH, sideL, matDrywall);
+        addBox('West_Sill', -halfW - wallT / 2, 0.4, 0, wallT, 0.8, winW, matDrywall);
+        addBox('West_Header', -halfW - wallT / 2, 2.55, 0, wallT, 0.3, winW, matDrywall);
+        addBox('West_Glass', -halfW - wallT / 2, 1.6, 0, 0.02, 1.5, winW - 0.08, matGlass);
+
+        // East Wall with Bedroom Window
+        addBox('East_S', halfW + wallT / 2, roomH / 2, -halfL + sideL / 2, wallT, roomH, sideL, matDrywall);
+        addBox('East_N', halfW + wallT / 2, roomH / 2, halfL - sideL / 2, wallT, roomH, sideL, matDrywall);
+        addBox('East_Sill', halfW + wallT / 2, 0.4, 0, wallT, 0.8, winW, matDrywall);
+        addBox('East_Header', halfW + wallT / 2, 2.55, 0, wallT, 0.3, winW, matDrywall);
+        addBox('East_Glass', halfW + wallT / 2, 1.6, 0, 0.02, 1.5, winW - 0.08, matGlass);
+
+        // North Outer Wall
+        addBox('North_Wall', 0, roomH / 2, halfL + wallT / 2, roomW + wallT * 2, roomH, wallT, matDrywall);
+
+        // South Outer Wall with Front Entrance Cutout
+        const frontDoorW = 1.0, frontX = -2.2;
+        const frontLeftW = (frontX - (-halfW)) - frontDoorW / 2;
+        const frontRightW = (halfW - frontX) - frontDoorW / 2;
+        addBox('South_L', -halfW + frontLeftW / 2, roomH / 2, -halfL - wallT / 2, frontLeftW, roomH, wallT, matDrywall);
+        addBox('South_R', halfW - frontRightW / 2, roomH / 2, -halfL - wallT / 2, frontRightW, roomH, wallT, matDrywall);
+        addBox('South_Header', frontX, 2.4, -halfL - wallT / 2, frontDoorW, 0.6, wallT, matDrywall);
+
+        // 3. Single Interior Dividing Wall & Bathroom Partition
+        const divDoorW = 1.0, divSouthL = (halfL - divDoorW / 2);
+        addBox('DividingWall_S', 0, roomH / 2, -halfL + divSouthL / 2, wallT, roomH, divSouthL, matDrywall);
+        addBox('DividingWall_N', 0, roomH / 2, halfL - divSouthL / 2, wallT, roomH, divSouthL, matDrywall);
+        addBox('DividingWall_Header', 0, 2.4, 0, wallT, 0.6, divDoorW, matDrywall);
+
+        const bathDoorW = 0.9;
+        addBox('Bath_Wall_West', 2.2, roomH / 2, 1.75, wallT, roomH, 1.5, matDrywall);
+        addBox('Bath_Wall_South', 3.1, roomH / 2, 0.2, 1.8, roomH, wallT, matDrywall);
+        addBox('Bath_Header', 2.2, 2.4, 0.65, wallT, 0.6, bathDoorW, matDrywall);
+
+        // 4. Door Assemblies (Front, Dividing Wall, Bathroom)
+        addDoorAssembly('FrontDoor', frontX, -halfL, frontDoorW, 2.1, matDoorWood, matMetalHandle);
+        addDoorAssembly('DividingDoor', 0, 0, divDoorW, 2.1, matDoorWood, matMetalHandle);
+        addDoorAssembly('BathroomDoor', 2.2, 0.65, bathDoorW, 2.1, matDoorWood, matMetalHandle);
+
+        // 5. Perimeter Baseboard Trim
+        addBox('Trim_North', 0, 0.06, halfL - 0.01, roomW, 0.12, 0.02, matBaseboard);
+        addBox('Trim_West_S', -halfW + 0.01, 0.06, -halfL + sideL / 2, 0.02, 0.12, sideL, matBaseboard);
+        addBox('Trim_West_N', -halfW + 0.01, 0.06, halfL - sideL / 2, 0.02, 0.12, sideL, matBaseboard);
+        addBox('Trim_East_S', halfW - 0.01, 0.06, -halfL + sideL / 2, 0.02, 0.12, sideL, matBaseboard);
+        addBox('Trim_East_N', halfW - 0.01, 0.06, halfL - sideL / 2, 0.02, 0.12, sideL, matBaseboard);
+
+        // --- WASD Controls ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW') moveFwd = true;
+            if (e.code === 'KeyS') moveBwd = true;
+            if (e.code === 'KeyA') moveLeft = true;
+            if (e.code === 'KeyD') moveRight = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') moveFwd = false;
+            if (e.code === 'KeyS') moveBwd = false;
+            if (e.code === 'KeyA') moveLeft = false;
+            if (e.code === 'KeyD') moveRight = false;
+        });
+
+        function lockPointer() { container.requestPointerLock(); }
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === container) {
+                document.getElementById('prompt-overlay').style.display = 'none';
+            } else if (isWalkthrough) {
+                document.getElementById('prompt-overlay').style.display = 'block';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === container && isWalkthrough) {
+                yaw -= e.movementX * 0.0022;
+                pitch -= e.movementY * 0.0022;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+            }
+        });
+
+        // Initialize Top-Down View
+        setTopDownView();
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (isWalkthrough) {
+                if (document.pointerLockElement === container) {
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = yaw;
+                    camera.rotation.x = pitch;
+
+                    const speed = 3.2 * delta;
+                    const dir = new THREE.Vector3();
+                    if (moveFwd) dir.z -= 1;
+                    if (moveBwd) dir.z += 1;
+                    if (moveLeft) dir.x -= 1;
+                    if (moveRight) dir.x += 1;
+                    dir.normalize();
+                    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                    const next = camera.position.clone().add(dir.multiplyScalar(speed));
+                    next.x = Math.max(-3.7, Math.min(3.7, next.x));
+                    next.z = Math.max(-2.2, Math.min(2.2, next.z));
+                    camera.position.copy(next);
+                }
+            } else {
+                orbitControls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Poly 3D Bedroom Furniture Set - Realistic PBR Presentation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0e131d;
+            color: #ffffff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Presentation Panel */
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: 360px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        }
+
+        .ui-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ui-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #d97706, #b45309);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+        }
+
+        .ui-title h1 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #fef3c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ui-title p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 8px;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .view-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.25));
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+    </style>
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="ui-panel">
+        <div class="ui-header">
+            <div class="ui-icon">🛏️</div>
+            <div class="ui-title">
+                <h1>High-Poly Bedroom Set</h1>
+                <p>Photorealistic PBR Furniture Models</p>
+            </div>
+        </div>
+
+        <div class="view-grid">
+            <button class="view-btn active" id="btn-room" onclick="setRoomView()">📐 Room Layout</button>
+            <button class="view-btn" id="btn-bed" onclick="inspectBed()">🔍 Queen Bed</button>
+        </div>
+
+        <div class="info-card">
+            <strong>High-Poly Model Details:</strong><br>
+            • <strong>Queen Bed</strong>: Wrinkled duvet, throw blanket folds, 4 pillows<br>
+            • <strong>Nightstands</strong>: Metal handles & bedside lamps<br>
+            • <strong>Wardrobe</strong>: Wood grain, handles & hinges<br>
+            • <strong>Desk & Chair</strong>: Drawer pulls & cushioned chair<br>
+            • <strong>Details</strong>: Woven area rug & framed glass art
+        </div>
+    </div>
+
+    <script>
+        // --- 3D WebGL Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0e131d');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.25;
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+
+        function setRoomView() {
+            document.getElementById('btn-room').classList.add('active');
+            document.getElementById('btn-bed').classList.remove('active');
+            camera.position.set(0.5, 6, 5);
+            orbitControls.target.set(0.5, 0.5, 0.5);
+            orbitControls.update();
+        }
+
+        function inspectBed() {
+            document.getElementById('btn-bed').classList.add('active');
+            document.getElementById('btn-room').classList.remove('active');
+            camera.position.set(0.5, 2.2, 3.2);
+            orbitControls.target.set(0.5, 0.6, 0.9);
+            orbitControls.update();
+        }
+
+        // --- PBR Materials ---
+        const matOak = new THREE.MeshStandardMaterial({ color: '#b88a5c', roughness: 0.45, metalness: 0.05 });
+        const matBedding = new THREE.MeshStandardMaterial({ color: '#f5f2eb', roughness: 0.9 });
+        const matBlanket = new THREE.MeshStandardMaterial({ color: '#cbd5e1', roughness: 0.95 });
+        const matMetal = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.35, metalness: 0.7 });
+        const matLampshade = new THREE.MeshStandardMaterial({ color: '#fef3c7', roughness: 0.85 });
+        const matRug = new THREE.MeshStandardMaterial({ color: '#d9d2c5', roughness: 0.95 });
+        const matGlass = new THREE.MeshStandardMaterial({ color: '#93c5fd', transparent: true, opacity: 0.25 });
+        const matFloor = new THREE.MeshStandardMaterial({ color: '#8c6845', roughness: 0.5 });
+        const matWall = new THREE.MeshStandardMaterial({ color: '#eae4d8', roughness: 0.85 });
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight('#fef3c7', 0.65);
+        scene.add(ambientLight);
+
+        // Key light
+        const keyLight = new THREE.DirectionalLight('#fff4e0', 1.4);
+        keyLight.position.set(5, 8, -4);
+        keyLight.castShadow = true;
+        keyLight.shadow.mapSize.width = 2048;
+        keyLight.shadow.mapSize.height = 2048;
+        scene.add(keyLight);
+
+        // Bedside Lamp Point Lights
+        const l1 = new THREE.PointLight('#fed7aa', 1.1, 4);
+        l1.position.set(-0.55, 0.75, 1.7);
+        scene.add(l1);
+
+        const l2 = new THREE.PointLight('#fed7aa', 1.1, 4);
+        l2.position.set(1.55, 0.75, 1.7);
+        scene.add(l2);
+
+        // --- Construction ---
+        function addBox(name, x, y, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        // Environment Base Plane
+        addBox('FloorPlane', 0, -0.05, 0, 4.0, 0.1, 4.5, matFloor);
+        addBox('BackWallPlane', 0, 1.35, 2.25, 4.0, 2.7, 0.1, matWall);
+        addBox('LeftWallPlane', -2.0, 1.35, 0, 0.1, 2.7, 4.5, matWall);
+
+        // 1. Queen Bed with Wrinkled Bedding & Pillows
+        const bX = 0.5, bZ = 0.9;
+        addBox('Bed_Platform', bX, 0.22, bZ, 1.65, 0.18, 2.15, matOak);
+        addBox('Bed_Headboard', bX, 0.65, bZ + 1.02, 1.65, 0.95, 0.12, matOak);
+        addBox('Bed_HeadboardCap', bX, 1.15, bZ + 1.02, 1.72, 0.06, 0.16, matOak);
+
+        addBox('Bed_Mattress', bX, 0.38, bZ - 0.05, 1.55, 0.22, 2.05, matBedding);
+        addBox('Bed_Duvet', bX, 0.52, bZ - 0.1, 1.58, 0.14, 1.95, matBedding);
+        addBox('Bed_DuvetSkirtL', bX - 0.78, 0.42, bZ - 0.1, 0.06, 0.28, 1.95, matBedding);
+        addBox('Bed_DuvetSkirtR', bX + 0.78, 0.42, bZ - 0.1, 0.06, 0.28, 1.95, matBedding);
+        addBox('Bed_ThrowBlanket', bX, 0.58, bZ - 0.6, 1.62, 0.08, 0.85, matBlanket);
+
+        addBox('Pillow_BL', bX - 0.4, 0.62, bZ + 0.72, 0.68, 0.16, 0.42, matBedding);
+        addBox('Pillow_BR', bX + 0.4, 0.62, bZ + 0.72, 0.68, 0.16, 0.42, matBedding);
+        addBox('Pillow_FL', bX - 0.4, 0.65, bZ + 0.52, 0.64, 0.14, 0.38, matBlanket);
+        addBox('Pillow_FR', bX + 0.4, 0.65, bZ + 0.52, 0.64, 0.14, 0.38, matBlanket);
+
+        // 2. Nightstands & Table Lamps
+        addBox('Nightstand_L', -0.55, 0.26, 1.7, 0.45, 0.52, 0.42, matOak);
+        addBox('Nightstand_L_H1', -0.55, 0.38, 1.5, 0.14, 0.03, 0.03, matMetal);
+        addBox('Nightstand_L_H2', -0.55, 0.14, 1.5, 0.14, 0.03, 0.03, matMetal);
+        addBox('Lamp_L_Base', -0.55, 0.56, 1.7, 0.12, 0.1, 0.12, matMetal);
+        addBox('Lamp_L_Shade', -0.55, 0.76, 1.7, 0.24, 0.22, 0.24, matLampshade);
+
+        addBox('Nightstand_R', 1.55, 0.26, 1.7, 0.45, 0.52, 0.42, matOak);
+        addBox('Nightstand_R_H1', 1.55, 0.38, 1.5, 0.14, 0.03, 0.03, matMetal);
+        addBox('Nightstand_R_H2', 1.55, 0.14, 1.5, 0.14, 0.03, 0.03, matMetal);
+        addBox('Lamp_R_Base', 1.55, 0.56, 1.7, 0.12, 0.1, 0.12, matMetal);
+        addBox('Lamp_R_Shade', 1.55, 0.76, 1.7, 0.24, 0.22, 0.24, matLampshade);
+
+        // 3. Wardrobe Closet
+        addBox('Wardrobe_Body', -1.65, 1.15, 0.8, 0.6, 2.3, 1.6, matOak);
+        addBox('Wardrobe_HandleL', -1.33, 1.15, 0.76, 0.03, 0.28, 0.03, matMetal);
+        addBox('Wardrobe_HandleR', -1.33, 1.15, 0.84, 0.03, 0.28, 0.03, matMetal);
+
+        // 4. Study Desk & Chair
+        addBox('Desk_Surface', -1.2, 0.73, -1.2, 1.2, 0.06, 0.55, matOak);
+        addBox('Desk_LegL', -1.75, 0.38, -1.2, 0.06, 0.68, 0.52, matOak);
+        addBox('Desk_Cabinet', -0.85, 0.33, -1.2, 0.42, 0.58, 0.52, matOak);
+        addBox('Desk_Handle1', -0.85, 0.5, -0.92, 0.14, 0.03, 0.03, matMetal);
+        addBox('Desk_Handle2', -0.85, 0.26, -0.92, 0.14, 0.03, 0.03, matMetal);
+
+        addBox('Chair_Seat', -1.2, 0.38, -0.65, 0.45, 0.08, 0.45, matBlanket);
+        addBox('Chair_Back', -1.2, 0.65, -0.47, 0.45, 0.48, 0.06, matOak);
+
+        // 5. Area Rug & Wall Decor
+        addBox('AreaRug', bX, 0.01, 0.4, 2.2, 0.02, 2.6, matRug);
+        addBox('WallArt_Frame', bX, 1.6, 2.18, 1.2, 0.8, 0.04, matOak);
+        addBox('WallArt_Glass', bX, 1.6, 2.16, 1.12, 0.72, 0.01, matGlass);
+
+        // Initialize Room View
+        setRoomView();
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scandinavian Studio Apartment (Unity VR & ArchViz)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #ffffff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Control Bar */
+        .ui-panel {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 10;
+            background: rgba(18, 24, 38, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: 340px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        .ui-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ui-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #d97706, #b45309);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+        }
+
+        .ui-title h1 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #fef3c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ui-title p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-toggle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 8px;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.25));
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .zone-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zone-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }
+
+        .zone-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fbbf24;
+        }
+
+        .controls-hint {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .key-tag {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-family: monospace;
+            color: #fff;
+        }
+
+        .prompt-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 20px;
+            padding: 24px 36px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+            display: none;
+        }
+
+        .prompt-overlay h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .prompt-overlay p {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+    </style>
+    <!-- Three.js and OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="prompt-overlay" id="prompt-overlay" onclick="lockPointer()">
+        <h2>🚶 Click to Walk Through Studio</h2>
+        <p>Use WASD to Move • Mouse to Look • ESC to Unlock</p>
+    </div>
+
+    <div class="ui-panel">
+        <div class="ui-header">
+            <div class="ui-icon">🛋️</div>
+            <div class="ui-title">
+                <h1>Scandi VR Studio</h1>
+                <p>6m × 8m Modern Scandinavian</p>
+            </div>
+        </div>
+
+        <div class="view-toggle-grid">
+            <button class="view-btn active" id="btn-topdown" onclick="setTopDownView()">📐 Top-Down Plan</button>
+            <button class="view-btn" id="btn-walk" onclick="setWalkthroughView()">🚶 Walkthrough</button>
+        </div>
+
+        <div class="zone-card">
+            <span class="zone-title">Active Zone</span>
+            <span class="zone-value" id="zone-display">Top-Down Plan</span>
+        </div>
+
+        <div class="controls-hint" id="controls-hint">
+            <strong>Top-Down View Controls:</strong><br>
+            • Drag mouse to rotate perspective<br>
+            • Scroll mouse wheel to zoom<br>
+            • Right click to pan floor plan
+        </div>
+    </div>
+
+    <script>
+        // --- 3D WebGL Environment Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0f172a');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+
+        // Mode state
+        let isWalkthroughMode = false;
+        let yaw = 0, pitch = 0;
+        let moveFwd = false, moveBwd = false, moveLeft = false, moveRight = false;
+
+        function setTopDownView() {
+            isWalkthroughMode = false;
+            if (document.pointerLockElement) document.exitPointerLock();
+            
+            document.getElementById('btn-topdown').classList.add('active');
+            document.getElementById('btn-walk').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'none';
+            document.getElementById('zone-display').innerText = 'Architectural Floor Plan';
+            document.getElementById('controls-hint').innerHTML = 
+                '<strong>Top-Down View Controls:</strong><br>' +
+                '• Drag mouse to rotate perspective<br>' +
+                '• Scroll mouse wheel to zoom<br>' +
+                '• Right click to pan floor plan';
+
+            orbitControls.enabled = true;
+            camera.position.set(0, 14, 0.1);
+            orbitControls.target.set(0, 0, 0);
+            orbitControls.update();
+        }
+
+        function setWalkthroughView() {
+            isWalkthroughMode = true;
+            document.getElementById('btn-walk').classList.add('active');
+            document.getElementById('btn-topdown').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'block';
+            document.getElementById('zone-display').innerText = 'Entrance Hallway';
+            document.getElementById('controls-hint').innerHTML = 
+                '<strong>Walkthrough Controls:</strong><br>' +
+                '• <span class="key-tag">W</span><span class="key-tag">A</span><span class="key-tag">S</span><span class="key-tag">D</span> to move<br>' +
+                '• Mouse to look around<br>' +
+                '• <span class="key-tag">Shift</span> to sprint';
+
+            orbitControls.enabled = false;
+            camera.position.set(0, 1.65, -3.2); // Entrance spawn
+            yaw = 0; pitch = 0;
+            camera.rotation.set(0, 0, 0);
+        }
+
+        // --- PBR Materials ---
+        const matOak = new THREE.MeshStandardMaterial({ color: '#c29b68', roughness: 0.5, metalness: 0.05 });
+        const matWall = new THREE.MeshStandardMaterial({ color: '#f1f5f9', roughness: 0.85 });
+        const matBlack = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.35, metalness: 0.5 });
+        const matStone = new THREE.MeshStandardMaterial({ color: '#64748b', roughness: 0.4, metalness: 0.1 });
+        const matCeramic = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.15, metalness: 0.05 });
+        const matBeige = new THREE.MeshStandardMaterial({ color: '#dbece2', roughness: 0.9 });
+        const matGreen = new THREE.MeshStandardMaterial({ color: '#3f6212', roughness: 0.8 });
+        const matGlass = new THREE.MeshStandardMaterial({ color: '#93c5fd', transparent: true, opacity: 0.35 });
+        const matTile = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.45 });
+        const matRug = new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.95 });
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight('#fef3c7', 0.6);
+        scene.add(ambientLight);
+
+        // Sunlight from Bedroom Window (Z = +4)
+        const sunLight = new THREE.DirectionalLight('#fff4e0', 1.5);
+        sunLight.position.set(4, 8, 12);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        // Interior Spotlights
+        const spots = [
+            { pos: [1.75, 2.7, 2.85], target: [1.75, 0, 2.85], color: '#fef3c7', name: 'Bedroom' },
+            { pos: [-2.0, 2.7, -1.25], target: [-2.0, 0, -1.25], color: '#fed7aa', name: 'Kitchen' },
+            { pos: [1.75, 2.7, -1.5], target: [1.75, 0, -1.5], color: '#fae8ff', name: 'Living' }
+        ];
+        spots.forEach(s => {
+            const spot = new THREE.SpotLight(s.color, 1.6, 7, Math.PI / 4, 0.4);
+            spot.position.set(s.pos[0], s.pos[1], s.pos[2]);
+            spot.target.position.set(s.target[0], s.target[1], s.target[2]);
+            spot.castShadow = true;
+            scene.add(spot);
+            scene.add(spot.target);
+        });
+
+        // --- Architectural Mesh Helper ---
+        const roomW = 6.0, roomL = 8.0, roomH = 2.8, wallT = 0.18;
+        const halfW = roomW / 2, halfL = roomL / 2;
+
+        function addBox(name, x, y, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        // 1. Architecture
+        addBox('Floor', 0, -0.05, 0, roomW, 0.1, roomL, matOak);
+        addBox('Ceiling', 0, roomH + 0.05, 0, roomW, 0.1, roomL, matWall);
+
+        // Outer Walls
+        addBox('Wall_Left', -halfW - wallT / 2, roomH / 2, 0, wallT, roomH, roomL, matWall);
+        addBox('Wall_Right', halfW + wallT / 2, roomH / 2, 0, wallT, roomH, roomL, matWall);
+
+        // Entrance Front Wall (Z = -halfL)
+        const doorW = 1.1, sideW = (roomW - doorW) / 2;
+        addBox('Front_Left', -halfW + sideW / 2, roomH / 2, -halfL - wallT / 2, sideW, roomH, wallT, matWall);
+        addBox('Front_Right', halfW - sideW / 2, roomH / 2, -halfL - wallT / 2, sideW, roomH, wallT, matWall);
+        addBox('Front_Header', 0, 2.1 + (roomH - 2.1) / 2, -halfL - wallT / 2, doorW, roomH - 2.1, wallT, matWall);
+
+        // Bedroom Back Wall with Window (Z = +halfL)
+        const winW = 3.2, winSideW = (roomW - winW) / 2;
+        addBox('Back_Left', -halfW + winSideW / 2, roomH / 2, halfL + wallT / 2, winSideW, roomH, wallT, matWall);
+        addBox('Back_Right', halfW - winSideW / 2, roomH / 2, halfL + wallT / 2, winSideW, roomH, wallT, matWall);
+        addBox('Back_Sill', 0, 0.4, halfL + wallT / 2, winW, 0.8, wallT, matWall);
+        addBox('Back_Header', 0, 2.65, halfL + wallT / 2, winW, 0.3, wallT, matWall);
+        addBox('Window_Glass', 0, 1.65, halfL + wallT / 2, winW - 0.1, 1.7, 0.02, matGlass);
+
+        // 2. Bathroom (Upper Left)
+        addBox('Bath_Partition_East', -1.0, roomH / 2, 2.5, wallT, roomH, 3.0, matWall);
+        addBox('Bath_Partition_South', -2.0, roomH / 2, 1.0, 2.0, roomH, wallT, matWall);
+        addBox('Bath_Tiles', -2.0, 0.01, 2.5, 1.95, 0.02, 2.95, matTile);
+        addBox('Shower_Glass', -1.95, 1.1, 3.2, 0.04, 2.2, 1.2, matGlass);
+        addBox('Toilet', -2.45, 0.25, 1.4, 0.42, 0.45, 0.65, matCeramic);
+        addBox('Vanity_Wood', -1.35, 0.45, 1.55, 0.5, 0.45, 0.8, matOak);
+        addBox('Vanity_Sink', -1.35, 0.72, 1.55, 0.42, 0.12, 0.65, matCeramic);
+
+        // 3. Kitchen (Single-Wall Left)
+        addBox('Kitchen_Cabinets', -2.68, 0.45, -1.25, 0.64, 0.9, 3.2, matOak);
+        addBox('Kitchen_Counter', -2.68, 0.92, -1.25, 0.68, 0.06, 3.25, matStone);
+        addBox('Kitchen_Fridge', -2.65, 0.42, 0.05, 0.6, 0.85, 0.55, matBlack);
+
+        // 4. Open Wardrobe Closet (Center-Left)
+        addBox('Wardrobe_Frame', -0.25, 1.25, 3.88, 1.1, 2.3, 0.08, matOak);
+        addBox('Wardrobe_Drawer', -0.25, 0.25, 3.25, 0.98, 0.45, 1.15, matOak);
+        addBox('Wardrobe_Shirts', -0.25, 1.1, 3.25, 0.85, 0.75, 0.45, matBeige);
+
+        // 5. Bedroom (Upper Right)
+        addBox('Bed_Frame', 1.75, 0.2, 2.85, 1.65, 0.35, 2.15, matOak);
+        addBox('Bed_WhiteDuvet', 1.75, 0.48, 2.75, 1.55, 0.28, 1.95, matWall);
+        addBox('Bed_BeigeBlanket', 1.75, 0.52, 2.15, 1.58, 0.16, 0.85, matBeige);
+        addBox('Pillow_1', 1.35, 0.64, 3.65, 0.65, 0.14, 0.38, matWall);
+        addBox('Pillow_2', 2.15, 0.64, 3.65, 0.65, 0.14, 0.38, matWall);
+        addBox('Accent_Cushion', 1.75, 0.68, 3.35, 0.35, 0.12, 0.35, matGreen);
+        addBox('Nightstand_L', 0.72, 0.25, 3.6, 0.42, 0.48, 0.45, matOak);
+        addBox('Nightstand_R', 2.78, 0.25, 3.6, 0.42, 0.48, 0.45, matOak);
+
+        // 6. Living Room (Lower Right)
+        addBox('Rug', 1.75, 0.01, -1.8, 2.2, 0.02, 2.8, matRug);
+        addBox('Sofa_Seat', 1.75, 0.38, -0.8, 1.85, 0.42, 0.85, matBeige);
+        addBox('Sofa_Back', 1.75, 0.62, -0.42, 1.85, 0.52, 0.22, matBeige);
+        addBox('CoffeeTable', 1.75, 0.22, -1.8, 1.1, 0.38, 0.65, matOak);
+        addBox('TVConsole', 2.78, 0.45, -2.6, 0.38, 0.35, 1.8, matOak);
+        addBox('TV_Screen', 2.92, 1.45, -2.6, 0.06, 0.82, 1.45, matBlack);
+
+        // --- Controls & PointerLock ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW') moveFwd = true;
+            if (e.code === 'KeyS') moveBwd = true;
+            if (e.code === 'KeyA') moveLeft = true;
+            if (e.code === 'KeyD') moveRight = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') moveFwd = false;
+            if (e.code === 'KeyS') moveBwd = false;
+            if (e.code === 'KeyA') moveLeft = false;
+            if (e.code === 'KeyD') moveRight = false;
+        });
+
+        function lockPointer() {
+            container.requestPointerLock();
+        }
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === container) {
+                document.getElementById('prompt-overlay').style.display = 'none';
+            } else if (isWalkthroughMode) {
+                document.getElementById('prompt-overlay').style.display = 'block';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === container && isWalkthroughMode) {
+                yaw -= e.movementX * 0.0022;
+                pitch -= e.movementY * 0.0022;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+            }
+        });
+
+        function updateZoneDisplay(x, z) {
+            const el = document.getElementById('zone-display');
+            if (x < -1.0 && z > 1.0) el.innerText = 'Bathroom';
+            else if (x < -1.0 && z <= 1.0) el.innerText = 'Single-Wall Kitchen';
+            else if (x > 0.5 && z > 0.8) el.innerText = 'Bedroom Area';
+            else if (x > 0.5 && z <= 0.8) el.innerText = 'Living Lounge';
+            else if (x >= -0.8 && x <= 0.4 && z > 2.0) el.innerText = 'Open Wardrobe Closet';
+            else el.innerText = 'Entrance Hallway';
+        }
+
+        // Initialize Top-Down View
+        setTopDownView();
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (isWalkthroughMode) {
+                if (document.pointerLockElement === container) {
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = yaw;
+                    camera.rotation.x = pitch;
+
+                    const speed = 3.2 * delta;
+                    const dir = new THREE.Vector3();
+                    if (moveFwd) dir.z -= 1;
+                    if (moveBwd) dir.z += 1;
+                    if (moveLeft) dir.x -= 1;
+                    if (moveRight) dir.x += 1;
+                    dir.normalize();
+                    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                    const next = camera.position.clone().add(dir.multiplyScalar(speed));
+                    next.x = Math.max(-2.7, Math.min(2.7, next.x));
+                    next.z = Math.max(-3.7, Math.min(3.7, next.z));
+                    camera.position.copy(next);
+
+                    updateZoneDisplay(camera.position.x, camera.position.z);
+                }
+            } else {
+                orbitControls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4m x 4.5m Warm Modern Bedroom Walkthrough</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f141d;
+            color: #ffffff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Panel */
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: 340px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+        }
+
+        .ui-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ui-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #d97706, #b45309);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+        }
+
+        .ui-title h1 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #fef3c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ui-title p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .view-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 8px;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .view-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.25));
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 12px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .key-badge {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: monospace;
+            color: #fff;
+        }
+
+        .prompt-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 20px;
+            padding: 24px 36px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+            display: none;
+        }
+
+        .prompt-overlay h2 { font-size: 20px; margin-bottom: 8px; color: #fff; }
+        .prompt-overlay p { font-size: 13px; color: #94a3b8; }
+    </style>
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <div class="prompt-overlay" id="prompt-overlay" onclick="lockPointer()">
+        <h2>🚶 Click to Walk Around Bedroom</h2>
+        <p>Use WASD to Move • Mouse to Look • ESC to Unlock</p>
+    </div>
+
+    <div class="ui-panel">
+        <div class="ui-header">
+            <div class="ui-icon">🛏️</div>
+            <div class="ui-title">
+                <h1>Warm Modern Bedroom</h1>
+                <p>4m × 4.5m × 2.7m Real Scale</p>
+            </div>
+        </div>
+
+        <div class="view-grid">
+            <button class="view-btn active" id="btn-topdown" onclick="setTopDownView()">📐 Top-Down Plan</button>
+            <button class="view-btn" id="btn-walk" onclick="setWalkthroughView()">🚶 Walkthrough</button>
+        </div>
+
+        <div class="info-card">
+            <strong>Room Features:</strong><br>
+            • Queen bed with layered bedding<br>
+            • Twin nightstands with bedside lamps<br>
+            • Wooden wardrobe closet & desk/vanity<br>
+            • Window with sheer curtains & exit door<br>
+            • Soft ambient & natural sunlight
+        </div>
+    </div>
+
+    <script>
+        // --- 3D WebGL Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0f141d');
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+
+        // View Mode state
+        let isWalkthrough = false;
+        let yaw = 0, pitch = 0;
+        let moveFwd = false, moveBwd = false, moveLeft = false, moveRight = false;
+
+        function setTopDownView() {
+            isWalkthrough = false;
+            if (document.pointerLockElement) document.exitPointerLock();
+
+            document.getElementById('btn-topdown').classList.add('active');
+            document.getElementById('btn-walk').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'none';
+
+            orbitControls.enabled = true;
+            camera.position.set(0, 10, 0.1);
+            orbitControls.target.set(0, 0, 0);
+            orbitControls.update();
+        }
+
+        function setWalkthroughView() {
+            isWalkthrough = true;
+            document.getElementById('btn-walk').classList.add('active');
+            document.getElementById('btn-topdown').classList.remove('active');
+            document.getElementById('prompt-overlay').style.display = 'block';
+
+            orbitControls.enabled = false;
+            // Spawn inside wooden exit door (X = -1.1, Z = -1.8) facing bedroom
+            camera.position.set(-1.1, 1.65, -1.8);
+            yaw = 0.3; pitch = 0;
+            camera.rotation.set(0, 0, 0);
+        }
+
+        // --- PBR Materials ---
+        const matWoodFloor = new THREE.MeshStandardMaterial({ color: '#b88a5c', roughness: 0.45, metalness: 0.05 });
+        const matWarmWall = new THREE.MeshStandardMaterial({ color: '#eae4d8', roughness: 0.85 });
+        const matWoodWarm = new THREE.MeshStandardMaterial({ color: '#a67246', roughness: 0.45, metalness: 0.05 });
+        const matBedding = new THREE.MeshStandardMaterial({ color: '#f5f2eb', roughness: 0.9 });
+        const matCurtain = new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.45 });
+        const matBlack = new THREE.MeshStandardMaterial({ color: '#1e232d', roughness: 0.35, metalness: 0.6 });
+        const matGlass = new THREE.MeshStandardMaterial({ color: '#93c5fd', transparent: true, opacity: 0.25 });
+        const matRug = new THREE.MeshStandardMaterial({ color: '#d9d2c5', roughness: 0.95 });
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight('#fef3c7', 0.65);
+        scene.add(ambientLight);
+
+        // Sunlight streaming from window on right wall (X = +2)
+        const sunLight = new THREE.DirectionalLight('#fff4e0', 1.45);
+        sunLight.position.set(8, 6, 0);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // Ceiling Light Fixture
+        const ceilingPointLight = new THREE.PointLight('#fef3c7', 1.3, 6);
+        ceilingPointLight.position.set(0, 2.45, 0);
+        scene.add(ceilingPointLight);
+
+        // Bedside Lamps
+        const lamp1 = new THREE.PointLight('#fed7aa', 0.9, 3.5);
+        lamp1.position.set(-0.55, 0.65, 1.7);
+        scene.add(lamp1);
+
+        const lamp2 = new THREE.PointLight('#fed7aa', 0.9, 3.5);
+        lamp2.position.set(1.55, 0.65, 1.7);
+        scene.add(lamp2);
+
+        // --- Bedroom Construction (4m x 4.5m x 2.7m) ---
+        const roomW = 4.0, roomL = 4.5, roomH = 2.7, wallT = 0.18;
+        const halfW = roomW / 2, halfL = roomL / 2;
+
+        function addBox(name, x, y, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        // 1. Architecture
+        addBox('Floor', 0, -0.05, 0, roomW, 0.1, roomL, matWoodFloor);
+        addBox('Ceiling', 0, roomH + 0.05, 0, roomW, 0.1, roomL, matWarmWall);
+        addBox('Wall_Back', 0, roomH / 2, halfL + wallT / 2, roomW + wallT * 2, roomH, wallT, matWarmWall);
+        addBox('Wall_Left', -halfW - wallT / 2, roomH / 2, 0, wallT, roomH, roomL, matWarmWall);
+
+        // Front Wall with Wooden Interior Door
+        const doorW = 1.0, doorX = -1.1, frontLeftW = (doorX - (-halfW)) - doorW / 2, frontRightW = (halfW - doorX) - doorW / 2;
+        addBox('Front_L', -halfW + frontLeftW / 2, roomH / 2, -halfL - wallT / 2, frontLeftW, roomH, wallT, matWarmWall);
+        addBox('Front_R', halfW - frontRightW / 2, roomH / 2, -halfL - wallT / 2, frontRightW, roomH, wallT, matWarmWall);
+        addBox('Front_Header', doorX, 2.4, -halfL - wallT / 2, doorW, 0.6, wallT, matWarmWall);
+        addBox('Door_Frame', doorX, 1.05, -halfL, doorW, 2.1, 0.08, matWoodWarm);
+
+        // Right Wall with Framed Window & Sheer Curtains
+        const winW = 1.8, sideL = (roomL - winW) / 2;
+        addBox('Right_S', halfW + wallT / 2, roomH / 2, -halfL + sideL / 2, wallT, roomH, sideL, matWarmWall);
+        addBox('Right_N', halfW + wallT / 2, roomH / 2, halfL - sideL / 2, wallT, roomH, sideL, matWarmWall);
+        addBox('Right_Sill', halfW + wallT / 2, 0.4, 0, wallT, 0.8, winW, matWarmWall);
+        addBox('Right_Header', halfW + wallT / 2, 2.55, 0, wallT, 0.3, winW, matWarmWall);
+        addBox('Window_Glass', halfW + wallT / 2, 1.6, 0, 0.02, 1.5, winW - 0.08, matGlass);
+        addBox('Curtain_SheerL', halfW - 0.08, 1.4, -winW * 0.4, 0.02, 2.0, 0.45, matCurtain);
+        addBox('Curtain_SheerR', halfW - 0.08, 1.4, winW * 0.4, 0.02, 2.0, 0.45, matCurtain);
+
+        // 2. Furnishings
+        // Queen Bed with Detailed Layered Bedding
+        addBox('Bed_Frame', 0.5, 0.2, 0.9, 1.65, 0.35, 2.15, matWoodWarm);
+        addBox('Bed_Headboard', 0.5, 0.65, 1.92, 1.65, 0.95, 0.15, matBedding);
+        addBox('Bed_Duvet', 0.5, 0.48, 0.8, 1.55, 0.28, 1.95, matBedding);
+        addBox('Bed_Pillows', 0.5, 0.64, 1.6, 1.45, 0.16, 0.42, matBedding);
+
+        // Nightstands & Bedside Lamps
+        addBox('Nightstand_L', -0.55, 0.25, 1.7, 0.38, 0.48, 0.42, matWoodWarm);
+        addBox('Nightstand_R', 1.55, 0.25, 1.7, 0.38, 0.48, 0.42, matWoodWarm);
+        addBox('Lamp_L', -0.55, 0.65, 1.7, 0.18, 0.32, 0.18, matBlack);
+        addBox('Lamp_R', 1.55, 0.65, 1.7, 0.18, 0.32, 0.18, matBlack);
+
+        // Wardrobe Closet
+        addBox('Wardrobe', -1.65, 1.15, 0.8, 0.55, 2.3, 1.6, matWoodWarm);
+
+        // Desk / Vanity & Chair
+        addBox('Desk_Surface', -1.2, 0.38, -1.2, 1.2, 0.74, 0.55, matWoodWarm);
+        addBox('Desk_Chair', -1.2, 0.25, -0.65, 0.45, 0.82, 0.45, matWoodWarm);
+
+        // Area Rug & Wall Art
+        addBox('Area_Rug', 0.5, 0.01, 0.4, 2.2, 0.02, 2.6, matRug);
+        addBox('Wall_Art', 0.5, 1.6, 2.18, 1.2, 0.8, 0.04, matBlack);
+        addBox('Ceiling_Fixture', 0, 2.62, 0, 0.35, 0.12, 0.35, matBlack);
+
+        // --- WASD Controls ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW') moveFwd = true;
+            if (e.code === 'KeyS') moveBwd = true;
+            if (e.code === 'KeyA') moveLeft = true;
+            if (e.code === 'KeyD') moveRight = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') moveFwd = false;
+            if (e.code === 'KeyS') moveBwd = false;
+            if (e.code === 'KeyA') moveLeft = false;
+            if (e.code === 'KeyD') moveRight = false;
+        });
+
+        function lockPointer() { container.requestPointerLock(); }
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === container) {
+                document.getElementById('prompt-overlay').style.display = 'none';
+            } else if (isWalkthrough) {
+                document.getElementById('prompt-overlay').style.display = 'block';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === container && isWalkthrough) {
+                yaw -= e.movementX * 0.0022;
+                pitch -= e.movementY * 0.0022;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+            }
+        });
+
+        // Initialize Top-Down View
+        setTopDownView();
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (isWalkthrough) {
+                if (document.pointerLockElement === container) {
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = yaw;
+                    camera.rotation.x = pitch;
+
+                    const speed = 3.0 * delta;
+                    const dir = new THREE.Vector3();
+                    if (moveFwd) dir.z -= 1;
+                    if (moveBwd) dir.z += 1;
+                    if (moveLeft) dir.x -= 1;
+                    if (moveRight) dir.x += 1;
+                    dir.normalize();
+                    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                    const next = camera.position.clone().add(dir.multiplyScalar(speed));
+                    next.x = Math.max(-1.7, Math.min(1.7, next.x));
+                    next.z = Math.max(-1.9, Math.min(1.9, next.z));
+                    camera.position.copy(next);
+                }
+            } else {
+                orbitControls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

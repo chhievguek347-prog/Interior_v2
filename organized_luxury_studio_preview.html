@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organized Luxury Studio - 3D Interactive Preview</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --bg-dark: #07090e;
+            --panel-bg: rgba(15, 20, 30, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --accent-gold: #e5a967;
+            --accent-glow: rgba(229, 169, 103, 0.35);
+            --text-main: #f8f9fa;
+            --text-sub: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        header {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 10;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            pointer-events: auto;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header .tag {
+            background: var(--accent-glow);
+            color: var(--accent-gold);
+            border: 1px solid rgba(229, 169, 103, 0.5);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 10;
+            padding: 10px 16px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #ca8a4b 100%);
+            color: #120e0a;
+            border-color: var(--accent-gold);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        /* Room Zone Navigator Bottom Left */
+        .zone-nav {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            z-index: 10;
+            padding: 18px;
+            width: 340px;
+            pointer-events: auto;
+        }
+
+        .zone-nav h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .zone-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .zone-btn span.dim {
+            font-size: 10px;
+            color: var(--text-sub);
+            font-weight: 400;
+        }
+
+        .zone-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateX(4px);
+        }
+
+        /* Inspector Card Bottom Right */
+        .inspector-card {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10;
+            padding: 22px;
+            width: 360px;
+            pointer-events: auto;
+            display: none;
+        }
+
+        .inspector-card.active {
+            display: block;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .inspector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .inspector-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .inspector-close {
+            cursor: pointer;
+            color: var(--text-sub);
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .inspector-close:hover { color: #fff; }
+
+        .inspector-body p {
+            font-size: 13px;
+            color: #cbd5e0;
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .spec-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .spec-label { color: var(--text-sub); }
+        .spec-val { font-weight: 600; color: #fff; }
+
+        .dim-label {
+            position: absolute;
+            background: rgba(15, 20, 28, 0.92);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 5;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            letter-spacing: 0.5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <!-- Floating 3D Zone Labels -->
+    <div id="label-bed" class="dim-label">1. MASTER BEDROOM (4.25m × 4.0m)</div>
+    <div id="label-kitchen" class="dim-label">2. KITCHEN & ISLAND (3.2m × 2.2m)</div>
+    <div id="label-living" class="dim-label">3. EXECUTIVE LIVING (4.25m × 5.0m)</div>
+    <div id="label-bath" class="dim-label">4. SPA BATHROOM (2.4m × 2.4m)</div>
+    <div id="label-closet" class="dim-label">5. WALK-IN CLOSET (1.8m × 2.4m)</div>
+
+    <header class="glass-panel">
+        <h1>Organized Luxury Studio</h1>
+        <span class="tag">85m² 5-Zone Open Concept</span>
+    </header>
+
+    <div class="toolbar glass-panel">
+        <button class="btn active" id="btn-orbit" onclick="setCameraView('orbit')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20z"/><path d="M2 12h20"/></svg>
+            3D Orbit Mode
+        </button>
+        <button class="btn" id="btn-topdown" onclick="setCameraView('topdown')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Top-Down Floorplan
+        </button>
+        <button class="btn" id="btn-dims" onclick="toggleDimensions()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 3H3v18h18V3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+            Zone Labels
+        </button>
+        <button class="btn" id="btn-lighting" onclick="toggleLighting()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span id="light-label">Daylight</span>
+        </button>
+    </div>
+
+    <div class="zone-nav glass-panel">
+        <h3>Organized Functional Areas</h3>
+        <div class="zone-grid">
+            <button class="zone-btn" onclick="focusZone('bedroom')">
+                Bed Area <span class="dim">Platform Bed & Headboard</span>
+            </button>
+            <button class="zone-btn" onclick="focusZone('kitchen')">
+                Kitchen Area <span class="dim">Quartz Island & Stools</span>
+            </button>
+            <button class="zone-btn" onclick="focusZone('living')">
+                Living Area <span class="dim">L-Sectional & 55" TV</span>
+            </button>
+            <button class="zone-btn" onclick="focusZone('bathroom')">
+                Bathroom <span class="dim">Rain Shower & Vanity</span>
+            </button>
+            <button class="zone-btn" onclick="focusZone('closet')">
+                Closet Area <span class="dim">Frosted Glass Wardrobe</span>
+            </button>
+            <button class="zone-btn" onclick="focusZone('entrance')">
+                Entrance <span class="dim">Door & Shoe Bench</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="inspector-card glass-panel" id="inspector-card">
+        <div class="inspector-header">
+            <span class="inspector-title" id="insp-title">Area Specifications</span>
+            <span class="inspector-close" onclick="hideInspector()">&times;</span>
+        </div>
+        <div class="inspector-body">
+            <p id="insp-desc">Click any furniture item in 3D scene to inspect features.</p>
+            <div class="spec-list" id="insp-specs"></div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let dirLight, ambientLight;
+        let raycaster, mouse;
+        let showDims = false;
+        let isLightingDay = true;
+
+        // Texture Generators
+        function generateWoodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#c79563';
+            ctx.fillRect(0, 0, 512, 512);
+            ctx.strokeStyle = '#b07e4d';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 512; i += 64) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+            }
+            for (let i = 0; i < 1500; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
+                ctx.fillRect(Math.random() * 512, Math.random() * 512, Math.random() * 40 + 10, 2);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(5, 5);
+            return texture;
+        }
+
+        const PALETTE = {
+            wood: 0xc79563,
+            wall: 0xf4f4f2,
+            accentWall: 0x4a3b32,
+            matteBlack: 0x20232a,
+            marble: 0x8a929a,
+            ceramic: 0xfcfcfc,
+            sofaFabric: 0xd9cebe,
+            plant: 0x3d6635,
+            frosted: 0xb5d3e7,
+            tile: 0xbfcad3,
+            rug: 0xe6e0d4,
+            glass: 0xd0e8f5
+        };
+
+        function init() {
+            const container = document.getElementById('webgl-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x07090e);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(9, 10, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02;
+
+            setupLighting();
+            buildOrganizedStudio();
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onSceneClick);
+
+            animate();
+        }
+
+        function setupLighting() {
+            dirLight = new THREE.DirectionalLight(0xfff8ee, 1.4);
+            dirLight.position.set(12, 14, -5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            ambientLight = new THREE.AmbientLight(0xdce7f3, 0.7);
+            scene.add(ambientLight);
+        }
+
+        function buildOrganizedStudio() {
+            const roomGroup = new THREE.Group();
+            const woodTex = generateWoodTexture();
+
+            const matWood = new THREE.MeshStandardMaterial({ map: woodTex, color: PALETTE.wood, roughness: 0.45 });
+            const matWall = new THREE.MeshStandardMaterial({ color: PALETTE.wall, roughness: 0.85 });
+            const matAccent = new THREE.MeshStandardMaterial({ color: PALETTE.accentWall, roughness: 0.5 });
+            const matBlack = new THREE.MeshStandardMaterial({ color: PALETTE.matteBlack, roughness: 0.3, metalness: 0.6 });
+            const matMarble = new THREE.MeshStandardMaterial({ color: PALETTE.marble, roughness: 0.25, metalness: 0.1 });
+            const matCeramic = new THREE.MeshStandardMaterial({ color: PALETTE.ceramic, roughness: 0.15 });
+            const matFabric = new THREE.MeshStandardMaterial({ color: PALETTE.sofaFabric, roughness: 0.9 });
+            const matPlant = new THREE.MeshStandardMaterial({ color: PALETTE.plant, roughness: 0.7 });
+            const matFrosted = new THREE.MeshStandardMaterial({ color: PALETTE.frosted, roughness: 0.3, transparent: true, opacity: 0.45 });
+            const matRug = new THREE.MeshStandardMaterial({ color: PALETTE.rug, roughness: 0.95 });
+
+            // 1. Architecture Shell (8.5m x 10.0m)
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.1, 10.0), matWood);
+            floor.position.set(0, -0.05, 0);
+            floor.receiveShadow = true;
+            roomGroup.add(floor);
+
+            const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.0, 10.0), matWall);
+            wallL.position.set(-4.35, 1.5, 0);
+            roomGroup.add(wallL);
+
+            const wallBack = new THREE.Mesh(new THREE.BoxGeometry(8.5, 3.0, 0.2), matWall);
+            wallBack.position.set(0, 1.5, 5.1);
+            roomGroup.add(wallBack);
+
+            const accentPanel = new THREE.Mesh(new THREE.BoxGeometry(4.2, 3.0, 0.04), matAccent);
+            accentPanel.position.set(1.8, 1.5, 4.98);
+            roomGroup.add(accentPanel);
+
+            // Front Entrance Wall
+            const wallFrontL = new THREE.Mesh(new THREE.BoxGeometry(2.3, 3.0, 0.2), matWall);
+            wallFrontL.position.set(-3.1, 1.5, -5.1);
+            roomGroup.add(wallFrontL);
+
+            const wallFrontR = new THREE.Mesh(new THREE.BoxGeometry(5.0, 3.0, 0.2), matWall);
+            wallFrontR.position.set(1.75, 1.5, -5.1);
+            roomGroup.add(wallFrontR);
+
+            // Right Panoramic Window Frame & Glass
+            const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 9.0), matBlack);
+            winFrame.position.set(4.35, 1.6, 0);
+            roomGroup.add(winFrame);
+
+            // 2. Interior Partitions
+            const bathWallS = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 0.2), matWall);
+            bathWallS.position.set(-3.05, 1.5, 2.6);
+            roomGroup.add(bathWallS);
+
+            const bathWallE = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.0, 2.4), matWall);
+            bathWallE.position.set(-1.85, 1.5, 3.8);
+            roomGroup.add(bathWallE);
+
+            const slatWall = new THREE.Mesh(new THREE.BoxGeometry(3.7, 2.6, 0.12), matAccent);
+            slatWall.position.set(2.35, 1.3, 1.0);
+            roomGroup.add(slatWall);
+
+            // 3. MASTER BED AREA (Top Right)
+            const bedGroup = new THREE.Group();
+            bedGroup.userData = { name: "1. Master Bed Suite", spec: "Platform Bed (2.1m × 1.8m) | Dual Nightstands & Slat Wall" };
+
+            const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.1, 0.15), matAccent);
+            headboard.position.set(2.1, 0.65, 4.85);
+            bedGroup.add(headboard);
+
+            const bedBase = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.38, 2.2), matWood);
+            bedBase.position.set(2.1, 0.22, 3.7);
+            bedBase.castShadow = true;
+            bedGroup.add(bedBase);
+
+            const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.24, 2.1), matCeramic);
+            mattress.position.set(2.1, 0.48, 3.65);
+            bedGroup.add(mattress);
+
+            const duvet = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.14, 1.6), matCeramic);
+            duvet.position.set(2.1, 0.56, 3.35);
+            bedGroup.add(duvet);
+
+            const nightL = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.48, 0.48), matWood);
+            nightL.position.set(0.75, 0.25, 4.65);
+            bedGroup.add(nightL);
+
+            const nightR = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.48, 0.48), matWood);
+            nightR.position.set(3.45, 0.25, 4.65);
+            bedGroup.add(nightR);
+
+            const bedRug = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.015, 2.8), matRug);
+            bedRug.position.set(2.1, 0.01, 3.2);
+            bedGroup.add(bedRug);
+
+            roomGroup.add(bedGroup);
+
+            // 4. GOURMET KITCHEN & ISLAND (Middle Left)
+            const kitchGroup = new THREE.Group();
+            kitchGroup.userData = { name: "2. Kitchen & Breakfast Bar", spec: "Single-Wall Quartz Counter + 3-Seater Marble Island" };
+
+            const mainCounter = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.9, 3.2), matWood);
+            mainCounter.position.set(-3.9, 0.45, -0.5);
+            kitchGroup.add(mainCounter);
+
+            const quartzTop = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.05, 3.25), matMarble);
+            quartzTop.position.set(-3.9, 0.92, -0.5);
+            kitchGroup.add(quartzTop);
+
+            const upperCabs = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.8, 3.2), matWood);
+            upperCabs.position.set(-3.9, 2.1, -0.5);
+            kitchGroup.add(upperCabs);
+
+            const islandBase = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.9, 1.8), matWood);
+            islandBase.position.set(-2.2, 0.45, -0.5);
+            kitchGroup.add(islandBase);
+
+            const islandTop = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.06, 1.9), matMarble);
+            islandTop.position.set(-2.2, 0.92, -0.5);
+            kitchGroup.add(islandTop);
+
+            for (let i = 0; i < 3; i++) {
+                const stool = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.65, 0.38), matAccent);
+                stool.position.set(-1.45, 0.33, -1.1 + i * 0.6);
+                kitchGroup.add(stool);
+            }
+
+            roomGroup.add(kitchGroup);
+
+            // 5. EXECUTIVE LIVING AREA (Bottom Right)
+            const livGroup = new THREE.Group();
+            livGroup.userData = { name: "3. Executive Living Lounge", spec: "L-Sectional Plush Sofa | 55\" 4K Smart TV & Media Console" };
+
+            const areaRug = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.015, 3.5), matRug);
+            areaRug.position.set(1.8, 0.01, -2.2);
+            livGroup.add(areaRug);
+
+            const sofaSeat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.35, 0.9), matFabric);
+            sofaSeat.position.set(1.8, 0.25, -3.8);
+            sofaSeat.castShadow = true;
+            livGroup.add(sofaSeat);
+
+            const sofaChaise = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 1.0), matFabric);
+            sofaChaise.position.set(2.65, 0.25, -2.85);
+            livGroup.add(sofaChaise);
+
+            const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.52, 0.25), matFabric);
+            sofaBack.position.set(1.8, 0.58, -4.2);
+            livGroup.add(sofaBack);
+
+            const coffeeTable = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.38, 32), matWood);
+            coffeeTable.position.set(1.6, 0.19, -2.2);
+            livGroup.add(coffeeTable);
+
+            const mediaConsole = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.36, 0.4), matWood);
+            mediaConsole.position.set(2.1, 0.28, 0.8);
+            livGroup.add(mediaConsole);
+
+            const tvFrame = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.82, 0.06), matBlack);
+            tvFrame.position.set(2.1, 1.15, 0.95);
+            livGroup.add(tvFrame);
+
+            const plantPot = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.17, 0.48, 24), matCeramic);
+            plantPot.position.set(3.45, 0.25, -0.6);
+            livGroup.add(plantPot);
+
+            const plantFoliage = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), matPlant);
+            plantFoliage.position.set(3.45, 0.9, -0.6);
+            livGroup.add(plantFoliage);
+
+            roomGroup.add(livGroup);
+
+            // 6. SPA BATHROOM (Top Left)
+            const bathGroup = new THREE.Group();
+            bathGroup.userData = { name: "4. Spa Bathroom Suite", spec: "2.4m × 2.4m | Walk-in Rain Shower & Floating Vanity" };
+
+            const vanity = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.9), matWood);
+            vanity.position.set(-2.3, 0.45, 3.0);
+            bathGroup.add(vanity);
+
+            const sink = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.12, 0.75), matCeramic);
+            sink.position.set(-2.3, 0.72, 3.0);
+            bathGroup.add(sink);
+
+            const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.85, 0.8), matBlack);
+            mirror.position.set(-1.9, 1.45, 3.0);
+            bathGroup.add(mirror);
+
+            const showerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.2, 1.1), matFrosted);
+            showerGlass.position.set(-3.05, 1.15, 4.9);
+            bathGroup.add(showerGlass);
+
+            const toilet = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.45, 0.68), matCeramic);
+            toilet.position.set(-3.7, 0.24, 3.0);
+            bathGroup.add(toilet);
+
+            roomGroup.add(bathGroup);
+
+            // 7. WALK-IN CLOSET (Top Center)
+            const closetGroup = new THREE.Group();
+            closetGroup.userData = { name: "5. Walk-in Closet Suite", spec: "1.8m × 2.4m | Frosted Glass Sliding Doors & Shelves" };
+
+            const closetFrame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.5, 0.45), matWood);
+            closetFrame.position.set(-0.9, 1.35, 4.75);
+            closetGroup.add(closetFrame);
+
+            const closetDoorL = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.4, 0.04), matFrosted);
+            closetDoorL.position.set(-1.3, 1.3, 4.5);
+            closetGroup.add(closetDoorL);
+
+            const closetDoorR = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.4, 0.04), matFrosted);
+            closetDoorR.position.set(-0.5, 1.3, 4.54);
+            closetGroup.add(closetDoorR);
+
+            roomGroup.add(closetGroup);
+
+            scene.add(roomGroup);
+        }
+
+        function setCameraView(mode) {
+            document.querySelectorAll('.toolbar .btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'topdown') {
+                document.getElementById('btn-topdown').classList.add('active');
+                animateCameraTo(new THREE.Vector3(0, 16, 0.1), new THREE.Vector3(0, 0, 0));
+            } else if (mode === 'orbit') {
+                document.getElementById('btn-orbit').classList.add('active');
+                animateCameraTo(new THREE.Vector3(9, 10, 10), new THREE.Vector3(0, 1, 0));
+            }
+        }
+
+        function focusZone(zoneName) {
+            setCameraView('orbit');
+            const targetMap = {
+                bedroom: { cam: new THREE.Vector3(2.5, 4.0, 7.5), target: new THREE.Vector3(2.1, 1.0, 3.5) },
+                kitchen: { cam: new THREE.Vector3(-5.5, 3.5, -1.0), target: new THREE.Vector3(-2.8, 1.0, -0.5) },
+                living: { cam: new THREE.Vector3(2.5, 4.0, -6.5), target: new THREE.Vector3(1.8, 0.8, -2.2) },
+                bathroom: { cam: new THREE.Vector3(-4.5, 4.0, 5.5), target: new THREE.Vector3(-3.0, 1.0, 3.8) },
+                closet: { cam: new THREE.Vector3(-1.2, 3.2, 2.2), target: new THREE.Vector3(-0.9, 1.2, 4.5) },
+                entrance: { cam: new THREE.Vector3(-2.0, 3.2, -7.0), target: new THREE.Vector3(-1.5, 1.0, -4.5) }
+            };
+            if (targetMap[zoneName]) {
+                animateCameraTo(targetMap[zoneName].cam, targetMap[zoneName].target);
+            }
+        }
+
+        function animateCameraTo(targetPos, targetLookAt) {
+            const startPos = camera.position.clone();
+            const startLookAt = controls.target.clone();
+            let duration = 750;
+            let startTime = performance.now();
+
+            function updateCam(now) {
+                let elapsed = now - startTime;
+                let t = Math.min(elapsed / duration, 1);
+                let ease = t * (2 - t);
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                controls.target.lerpVectors(startLookAt, targetLookAt, ease);
+                controls.update();
+
+                if (t < 1) requestAnimationFrame(updateCam);
+            }
+            requestAnimationFrame(updateCam);
+        }
+
+        function toggleLighting() {
+            isLightingDay = !isLightingDay;
+            const label = document.getElementById('light-label');
+            if (isLightingDay) {
+                scene.background.setHex(0x07090e);
+                dirLight.intensity = 1.4;
+                ambientLight.intensity = 0.7;
+                label.textContent = "Daylight";
+            } else {
+                scene.background.setHex(0x040507);
+                dirLight.intensity = 0.15;
+                ambientLight.intensity = 0.2;
+                label.textContent = "Warm Evening";
+            }
+        }
+
+        function toggleDimensions() {
+            showDims = !showDims;
+            document.getElementById('btn-dims').classList.toggle('active', showDims);
+            ['label-bed', 'label-kitchen', 'label-living', 'label-bath', 'label-closet'].forEach(id => {
+                document.getElementById(id).style.display = showDims ? 'block' : 'none';
+            });
+        }
+
+        function updateLabels() {
+            if (!showDims) return;
+            const posMap = {
+                'label-bed': new THREE.Vector3(2.1, 0.5, 3.5),
+                'label-kitchen': new THREE.Vector3(-3.0, 0.5, -0.5),
+                'label-living': new THREE.Vector3(1.8, 0.5, -2.2),
+                'label-bath': new THREE.Vector3(-3.05, 0.5, 3.8),
+                'label-closet': new THREE.Vector3(-0.9, 0.5, 4.5)
+            };
+            for (let id in posMap) {
+                const vector = posMap[id].clone();
+                vector.project(camera);
+                const x = (vector.x * .5 + .5) * window.innerWidth;
+                const y = (-(vector.y * .5) + .5) * window.innerHeight;
+                const elem = document.getElementById(id);
+                if (elem) {
+                    elem.style.left = `${x}px`;
+                    elem.style.top = `${y}px`;
+                }
+            }
+        }
+
+        function onSceneClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && !obj.userData.name && obj.parent !== scene) {
+                    obj = obj.parent;
+                }
+                if (obj.userData.name) {
+                    showInspector(obj.userData.name, obj.userData.spec);
+                }
+            }
+        }
+
+        function showInspector(title, spec) {
+            const card = document.getElementById('inspector-card');
+            document.getElementById('insp-title').textContent = title;
+            document.getElementById('insp-desc').textContent = "Selected functional zone layout & furniture specs.";
+            document.getElementById('insp-specs').innerHTML = `
+                <div class="spec-item"><span class="spec-label">Zone Specs:</span><span class="spec-val">${spec}</span></div>
+                <div class="spec-item"><span class="spec-label">Style:</span><span class="spec-val">Scandinavian Luxury PBR</span></div>
+            `;
+            card.classList.add('active');
+        }
+
+        function hideInspector() {
+            document.getElementById('inspector-card').classList.remove('active');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
